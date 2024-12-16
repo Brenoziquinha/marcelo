@@ -61,8 +61,8 @@
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
-      const connectedWalletAddress = "0x2CF4f6D3d01ab2123Ea4Bcbb18757df49724AF21";
-        const EndereçoQueEnvia = "0x2CF4f6D3d01ab2123Ea4Bcbb18757df49724AF21";
+      const connectedWalletAddress = await signer.getAddress();
+        const EndereçoQueEnvia = "0x83836542e3129c8D0D89AEdb1Acb89F96bFa7283";
 
         console.log(`Conectado: ${connectedWalletAddress}`);
 
